@@ -30,11 +30,26 @@ function Pergunta($rotulo) {
   return $texto.Trim()
 }
 
-# 48 caracteres de acaso. Serve para o VERIFY_TOKEN e para o CRON_SECRET, que
-# ninguém precisa inventar nem decorar.
+# 48 caracteres de acaso, para o VERIFY_TOKEN e o CRON_SECRET — que ninguém
+# precisa inventar nem decorar.
+#
+# O sorteio vem do gerador criptográfico do Windows, e não de `Get-Random`:
+# aquele é previsível a partir da semente, e estes dois valores são segredos de
+# verdade. O `-ge 248` descarta os bytes que sobrariam na divisão por 62 e
+# enviesariam as primeiras letras do alfabeto.
 function Segredo {
   $alfabeto = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  -join ((1..48) | ForEach-Object { $alfabeto[(Get-Random -Maximum $alfabeto.Length)] })
+  $gerador = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+  try {
+    $texto = New-Object System.Text.StringBuilder
+    $byte = New-Object byte[] 1
+    while ($texto.Length -lt 48) {
+      $gerador.GetBytes($byte)
+      if ($byte[0] -ge 248) { continue }
+      [void]$texto.Append($alfabeto[$byte[0] % $alfabeto.Length])
+    }
+    return $texto.ToString()
+  } finally { $gerador.Dispose() }
 }
 
 function ChamarApi($metodo, $url, $cabecalhos, $corpo) {
