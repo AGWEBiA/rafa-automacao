@@ -32,13 +32,13 @@ export const INTEGRACOES: readonly Integracao[] = [
   {
     id: 'senha_painel',
     nome: 'Senha do painel',
-    seFaltar: 'O painel fica aberto sem proteção para qualquer pessoa que conheça o endereço.',
+    seFaltar: 'O painel permanece bloqueado até que uma senha seja configurada.',
     opcional: false,
   },
   {
     id: 'assinatura_meta',
     nome: 'Assinatura do Meta',
-    seFaltar: 'O webhook aceita notificações sem confirmar que vieram do Meta.',
+    seFaltar: 'As notificações são recusadas porque não é possível validar a assinatura.',
     opcional: false,
   },
   {
@@ -56,8 +56,8 @@ export const INTEGRACOES: readonly Integracao[] = [
   {
     id: 'segredo_cron',
     nome: 'Segredo do cron',
-    seFaltar: 'As rotas automáticas ficam abertas; configure se quiser exigir autenticação.',
-    opcional: true,
+    seFaltar: 'A renovação do acesso e o recálculo ficam bloqueados. Crie um segredo para as tarefas agendadas nas configurações da Vercel e publique novamente.',
+    opcional: false,
   },
 ] as const;
 

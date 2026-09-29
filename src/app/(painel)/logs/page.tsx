@@ -27,7 +27,7 @@ function corDoStatus(status: string): string {
 }
 
 function dataPtBr(data: Date): string {
-  return new Date(data).toLocaleString('pt-BR');
+  return new Date(data).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 }
 
 export default async function LogsPage({

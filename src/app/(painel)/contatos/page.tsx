@@ -65,7 +65,7 @@ export default async function ContatosPage() {
                 <td className="py-2">{c.username ? `@${c.username}` : '—'}</td>
                 <td className="py-2 font-mono text-xs text-tinta-fraca">{c.igUserId}</td>
                 <td className="py-2 text-tinta-fraca">
-                  {new Date(c.lastSeenAt).toLocaleString('pt-BR')}
+                  {new Date(c.lastSeenAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                 </td>
               </tr>
             ))}

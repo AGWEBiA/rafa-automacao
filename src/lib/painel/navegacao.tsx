@@ -11,6 +11,7 @@ export type LinkDoPainel = {
   href: string;
   label: string;
   icone: ReactNode;
+  caminhos?: readonly string[];
 };
 
 export const LINKS_DO_PAINEL: readonly LinkDoPainel[] = [
@@ -21,6 +22,7 @@ export const LINKS_DO_PAINEL: readonly LinkDoPainel[] = [
 ];
 
 export type ConviteDeUpgrade = { href: string; label: string };
+export const NOME_DO_PAINEL = 'MeuChat';
 
 /**
  * O caminho da versão simples para a Plataforma.

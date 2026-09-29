@@ -5,6 +5,7 @@ import { parseEvents } from '@/lib/parse-event';
 import { processEvent, type ProcessResult } from '@/lib/process-event';
 import { summarizeResults } from '@/lib/webhook-summary';
 import { liveDeps } from '@/lib/live-deps';
+import { readWebhookBody } from '@/lib/webhook-body';
 import {
   recordWebhookEvent,
   markWebhookProcessed,
@@ -35,7 +36,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   // Corpo CRU antes de qualquer parse: o HMAC é calculado sobre os bytes
   // exatos que o Meta enviou.
-  const rawBody = await request.text();
+  const rawBody = await readWebhookBody(request);
+  if (rawBody === null) return new Response('Corpo muito grande', { status: 413 });
   const signature = request.headers.get('x-hub-signature-256');
 
   // env.igAppSecret() lança se IG_APP_SECRET não estiver definido. Isso não
@@ -53,6 +55,10 @@ export async function POST(request: NextRequest) {
 
   const valid = appSecret !== null ? isValidSignature(rawBody, signature, appSecret) : false;
 
+  // Assinaturas inválidas não entram no banco de dados.
+  if (configError) return new Response('Configuração ausente', { status: 401 });
+  if (!valid) return new Response('Assinatura inválida', { status: 401 });
+
   // Persistir antes de processar: se algo quebrar depois, o evento está salvo.
   // Se o próprio insert falhar (ex.: banco fora do ar), não existe linha pra
   // marcar — loga no console e devolve 200, porque nada foi processado ainda
@@ -63,24 +69,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('webhook: falha ao gravar webhook_events', error);
     return new Response('EVENT_RECEIVED', { status: 200 });
-  }
-
-  if (configError) {
-    try {
-      await markWebhookProcessed(eventId, configError);
-    } catch (error) {
-      console.error('webhook: falha ao marcar erro de configuração', error);
-    }
-    return new Response('Configuração ausente', { status: 401 });
-  }
-
-  if (!valid) {
-    try {
-      await markWebhookProcessed(eventId, 'assinatura inválida');
-    } catch (error) {
-      console.error('webhook: falha ao marcar assinatura inválida', error);
-    }
-    return new Response('Assinatura inválida', { status: 401 });
   }
 
   const results: ProcessResult[] = [];

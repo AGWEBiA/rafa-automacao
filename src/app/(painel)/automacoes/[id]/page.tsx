@@ -27,6 +27,7 @@ export default async function EditorPage({
   if (!automacao) notFound();
 
   const account = await getFirstAccount();
+  if (!account || automacao.accountId !== account.id) notFound();
   let midias: Media[] = [];
   let erroMidias: string | null = null;
 

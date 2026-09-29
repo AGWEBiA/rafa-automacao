@@ -69,6 +69,7 @@ export async function completarPerfisDeContatos() {
 }
 
 export async function criarAutomacao(formData: FormData) {
+  await requirePanelSession();
   const account = await getFirstAccount();
   if (!account) redirect('/configuracao');
 
@@ -80,7 +81,13 @@ export async function criarAutomacao(formData: FormData) {
 }
 
 export async function salvarAutomacao(formData: FormData) {
+  await requirePanelSession();
+  const account = await getFirstAccount();
+  if (!account) redirect('/configuracao');
   const id = Number(formData.get('id'));
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error('Automação inválida');
+  const atual = await getAutomation(id);
+  if (!atual || atual.accountId !== account.id) throw new Error('Automação não encontrada');
   const publicar = formData.get('acao') === 'publicar';
 
   const mediaId = String(formData.get('mediaId') ?? '').trim();
@@ -120,7 +127,6 @@ export async function salvarAutomacao(formData: FormData) {
   // runSend/process-event.ts. Salva como rascunho e volta pro editor com o
   // motivo.
   const publicarSemDm = publicar && textosDm.length === 0;
-  const atual = await getAutomation(id);
 
   try {
     await saveAutomation(
@@ -157,7 +163,14 @@ export async function salvarAutomacao(formData: FormData) {
 }
 
 export async function excluirAutomacao(formData: FormData) {
-  await deleteAutomation(Number(formData.get('id')));
+  await requirePanelSession();
+  const account = await getFirstAccount();
+  if (!account) redirect('/configuracao');
+  const id = Number(formData.get('id'));
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error('Automação inválida');
+  const atual = await getAutomation(id);
+  if (!atual || atual.accountId !== account.id) throw new Error('Automação não encontrada');
+  await deleteAutomation(id);
   revalidatePath('/');
   redirect('/');
 }

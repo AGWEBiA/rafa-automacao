@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { refreshLongLived } from '@/lib/meta/token';
 import { getFirstAccount, updateAccountToken } from '@/lib/repo/accounts';
+import { authorizeCron } from '@/lib/cron-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -8,10 +9,8 @@ export const dynamic = 'force-dynamic';
 const DIAS_PARA_RENOVAR = 10;
 
 export async function GET(request: NextRequest) {
-  const segredo = process.env.CRON_SECRET;
-  if (segredo && request.headers.get('authorization') !== `Bearer ${segredo}`) {
-    return Response.json({ erro: 'Não autorizado.' }, { status: 401 });
-  }
+  const denied = authorizeCron(request);
+  if (denied) return denied;
 
   const account = await getFirstAccount();
   if (!account) return Response.json({ ok: true, acao: 'nenhuma conta conectada' });
@@ -37,7 +36,7 @@ export async function GET(request: NextRequest) {
       novosDias: Math.round(expiresInSeconds / 86400),
     });
   } catch (error) {
-    // Sem CRON_SECRET esta rota é pública. O detalhe do erro — que inclui a
+    // O detalhe do erro — que inclui a
     // resposta crua do Meta e o fbtrace_id — vai só para o log do servidor.
     console.error('[cron/refresh-token] falha ao renovar:', error);
     return Response.json(
