@@ -77,6 +77,16 @@ Write-Host "  2. um projeto no Neon, com a connection string copiada"
 Write-Host "  3. um token do GitHub e um token da Vercel (o passo a passo explica)"
 Write-Host ""
 
+Titulo "O que vamos instalar"
+Passo "1. MEUCHAT  - comentario vira DM, e o painel basico"
+Passo "2. Radar    - a Plataforma completa (precisa do convite da organizacao aceito)"
+$escolha = Pergunta "Digite 1 ou 2"
+if ($escolha -ne '1' -and $escolha -ne '2') { Erro "responda 1 ou 2." }
+$modelo = if ($escolha -eq '2') { 'adeus-mensalidade/plataforma' } else { 'rafaneaime/rafa-automacao' }
+$nomeRepo = if ($escolha -eq '2') { 'plataforma' } else { 'meu-chat' }
+$nomeProjeto = $nomeRepo
+Passo "modelo: $modelo"
+
 Titulo "As duas chaves temporarias"
 Passo "Elas autorizam este instalador a criar o repositorio e publicar."
 Passo "Ao terminar, voce revoga as duas. O texto colado nao aparece na tela."
@@ -107,13 +117,10 @@ Passo "GitHub: $($usuario.login)"
 $eu = ChamarApi 'GET' 'https://api.vercel.com/v2/user' $cabecalhoVercel $null
 Passo "Vercel: $($eu.user.username)"
 
-$nomeRepo = 'meu-chat'
-$nomeProjeto = 'meu-chat'
-
 Titulo "Criando a sua copia do codigo"
-$copia = ChamarApi 'POST' 'https://api.github.com/repos/rafaneaime/rafa-automacao/generate' $cabecalhoGitHub @{
+$copia = ChamarApi 'POST' "https://api.github.com/repos/$modelo/generate" $cabecalhoGitHub @{
   owner = $usuario.login; name = $nomeRepo; private = $true
-  description = 'Minha instalacao do MEUCHAT'
+  description = 'Minha instalacao'
 }
 Passo "repositorio: $($copia.full_name)"
 
