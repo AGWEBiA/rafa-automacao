@@ -55,9 +55,29 @@ export async function POST(request: NextRequest) {
 
   const valid = appSecret !== null ? isValidSignature(rawBody, signature, appSecret) : false;
 
-  // Assinaturas inválidas não entram no banco de dados.
-  if (configError) return new Response('Configuração ausente', { status: 401 });
-  if (!valid) return new Response('Assinatura inválida', { status: 401 });
+  /*
+   * Recusada, mas não invisível.
+   *
+   * O corpo não entra no banco: ele não está autenticado, e guardar payload de
+   * origem desconhecida é como um banco vira depósito de lixo de terceiro. Mas
+   * a LINHA entra, com o motivo — porque "chegou e foi recusado" e "não chegou
+   * nada" são diagnósticos opostos, e a tela de Logs é onde a pessoa procura a
+   * diferença.
+   *
+   * O silêncio custou caro em 02/10/2026: uma instalação ficou com a lista de
+   * eventos vazia, e a investigação foi parar no portal do Meta — enquanto a
+   * resposta podia estar aqui, numa linha dizendo "assinatura inválida".
+   */
+  if (configError || !valid) {
+    try {
+      const marcador = await recordWebhookEvent('', false);
+      await markWebhookProcessed(marcador, configError ?? 'assinatura inválida');
+    } catch (error) {
+      console.error('webhook: falha ao registrar entrega recusada', error);
+    }
+    if (configError) return new Response('Configuração ausente', { status: 401 });
+    return new Response('Assinatura inválida', { status: 401 });
+  }
 
   // Persistir antes de processar: se algo quebrar depois, o evento está salvo.
   // Se o próprio insert falhar (ex.: banco fora do ar), não existe linha pra
