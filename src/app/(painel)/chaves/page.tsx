@@ -23,7 +23,27 @@ function rotuloDoEscopo(escopo: string): string {
 
 export default async function ChavesPage() {
   const account = await getFirstAccount();
-  const chaves = account ? await listarChaves(account.id) : [];
+
+  /*
+   * A tela não pode virar página branca por causa do banco.
+   *
+   * Em 02/10/2026 esta tela chegou às instalações antes da migração que cria a
+   * tabela, e quem abriu viu "A server error occurred" — a tela que deveria
+   * explicar como ligar o Claude ao painel foi a que pareceu quebrada. A
+   * migração foi junto no mesmo dia, mas o modo de falha continua possível:
+   * banco fora do ar, publicação pela metade. Dizer o que fazer custa seis
+   * linhas.
+   */
+  let chaves: Awaited<ReturnType<typeof listarChaves>> = [];
+  let bancoIndisponivel = false;
+  if (account) {
+    try {
+      chaves = await listarChaves(account.id);
+    } catch (erro) {
+      console.error('chaves: falha ao ler as chaves', erro);
+      bancoIndisponivel = true;
+    }
+  }
 
   return (
     <div>
@@ -32,6 +52,16 @@ export default async function ChavesPage() {
         pergunta="Quais integrações podem acessar sua Plataforma, e o que cada uma pode fazer."
         icone={<IconeChave className="h-5 w-5" />}
       />
+
+      {bancoIndisponivel && (
+        <Cartao className="mb-6 px-4 py-3">
+          <p className="text-sm">
+            <strong>Não consegui ler as chaves neste banco.</strong> Se você acabou de
+            atualizar, publique de novo na Vercel — a tabela das chaves é criada durante a
+            publicação. Se o erro continuar, o banco está fora do ar.
+          </p>
+        </Cartao>
+      )}
 
       <CriarChave temConta={account !== null} />
 
