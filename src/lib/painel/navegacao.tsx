@@ -5,7 +5,7 @@
  * Audiência e sem Leads, que são da Plataforma.
  */
 import type { ReactNode } from 'react';
-import { IconeChave, IconeGlobo, IconeMegafone, IconePessoas } from './icones';
+import { IconeChave, IconeClique, IconeGlobo, IconeMegafone, IconePessoas } from './icones';
 
 export type LinkDoPainel = {
   href: string;
@@ -18,6 +18,10 @@ export const LINKS_DO_PAINEL: readonly LinkDoPainel[] = [
   { href: '/', label: 'Automações', icone: <IconeMegafone /> },
   { href: '/contatos', label: 'Contatos', icone: <IconePessoas /> },
   { href: '/logs', label: 'Logs', icone: <IconeGlobo /> },
+  // A tela que liga o painel ao Claude da pessoa: ela cria a chave aqui e
+  // conversa com as próprias automações de lá. Sem item no menu, a tela existe
+  // e ninguém acha.
+  { href: '/chaves', label: 'Chaves', icone: <IconeClique /> },
   { href: '/configuracao', label: 'Configuração', icone: <IconeChave /> },
 ];
 
