@@ -16,13 +16,13 @@ import { AutomacaoInvalidaError } from '@/lib/automations/validation';
 import { mesclarPassos } from '@/lib/automations/passos';
 import type { MatchMode } from '@/lib/matching';
 import type { TipoDeGatilho } from '@/lib/repo/types';
-import { separarVariacoes } from '@/lib/automations/variacoes';
+import { lerVariacoes } from '@/lib/automations/variacoes';
 
 /**
  * Variações de mensagem. A regra é linha em branco separa — ver
  * `lib/automations/variacoes.ts`, que explica por que ela mudou.
  */
-const linhas = separarVariacoes;
+const linhas = (valores: FormDataEntryValue[]) => lerVariacoes(valores);
 
 /**
  * O gatilho vem de um `<select>`, e o que chega aqui é texto do navegador.
@@ -93,12 +93,12 @@ export async function salvarAutomacao(formData: FormData) {
   const mediaId = String(formData.get('mediaId') ?? '').trim();
   const botaoTitulo = String(formData.get('botaoTitulo') ?? '').trim();
   const botaoUrl = String(formData.get('botaoUrl') ?? '').trim();
-  const textosDm = linhas(formData.get('textosDm'));
+  const textosDm = linhas(formData.getAll('textosDm'));
   const passosDoFormulario = [
     {
       position: 0,
       kind: 'public_reply' as const,
-      variants: linhas(formData.get('respostasPublicas')),
+      variants: linhas(formData.getAll('respostasPublicas')),
       buttons: [],
     },
     {
@@ -110,13 +110,13 @@ export async function salvarAutomacao(formData: FormData) {
     {
       position: 2,
       kind: 'follow_up' as const,
-      variants: linhas(formData.get('followUp1')),
+      variants: linhas(formData.getAll('followUp1')),
       buttons: [],
     },
     {
       position: 3,
       kind: 'follow_up' as const,
-      variants: linhas(formData.get('followUp2')),
+      variants: linhas(formData.getAll('followUp2')),
       buttons: [],
     },
   ];

@@ -1,89 +1,56 @@
 import { describe, expect, it } from 'vitest';
-import {
-  contarVariacoes,
-  juntarVariacoes,
-  separarVariacoes,
-} from '../src/lib/automations/variacoes';
+import { lerVariacoes } from '../src/lib/automations/variacoes';
 
-describe('separarVariacoes', () => {
-  it('mantém uma mensagem de várias linhas como UMA variação', () => {
-    // O caso que causou o defeito em produção: uma DM de três linhas virava
-    // três variações, e o sistema sorteava uma. Quem comentou recebeu só
-    // "Oiiiii!" e um botão.
+/*
+ * Duas regras caíram aqui, pelo mesmo motivo.
+ *
+ * "Uma variação por linha" fez uma DM de três linhas virar três mensagens, e
+ * alguém recebeu só "Oiiiii!" e um botão. Trocamos por "linha em branco
+ * separa", que funcionou até outubro de 2026 — quando ficou claro que ela
+ * roubava o parágrafo, e DM sem parágrafo ninguém lê até o fim.
+ *
+ * Agora cada variação é um campo do formulário. Não existe separador dentro
+ * do texto, e é por isso que estes testes são sobre preservar o que a pessoa
+ * escreveu, não sobre dividir.
+ */
+describe('variações vindas do formulário', () => {
+  it('cada campo é uma variação, inteira', () => {
     const dm = [
       'Oiiiii!',
       'Aqui é a Amanda. Você comentou no meu post.',
       'É só clicar no botão abaixo para saber mais.',
     ].join('\n');
 
-    const variacoes = separarVariacoes(dm);
-
-    expect(variacoes).toHaveLength(1);
-    expect(variacoes[0]).toBe(dm);
+    expect(lerVariacoes([dm])).toEqual([dm]);
   });
 
-  it('separa em linha em branco', () => {
-    expect(separarVariacoes('Oi!\nTudo bem?\n\nOlá!\nComo vai?')).toEqual([
+  it('linha em branco dentro do campo é parágrafo, e fica', () => {
+    const comParagrafo = 'Oi! Tudo bem?\n\nVocê comentou no meu post.\n\nSegue o link.';
+
+    expect(lerVariacoes([comParagrafo])).toEqual([comParagrafo]);
+  });
+
+  it('dois campos são duas variações', () => {
+    expect(lerVariacoes(['Oi!\nTudo bem?', 'Olá!\nComo vai?'])).toEqual([
       'Oi!\nTudo bem?',
       'Olá!\nComo vai?',
     ]);
   });
 
-  it('trata várias linhas em branco seguidas como um separador só', () => {
-    expect(separarVariacoes('um\n\n\n\ndois')).toEqual(['um', 'dois']);
+  it('campo vazio é descartado: é quem acrescentou uma caixa e desistiu', () => {
+    expect(lerVariacoes(['Oi!', '', '   ', '\n\n'])).toEqual(['Oi!']);
+    expect(lerVariacoes([])).toEqual([]);
   });
 
-  it('trata linha só com espaço ou tab como linha em branco', () => {
-    // Ninguém enxerga a diferença na tela, então ela não pode mudar o
-    // resultado — senão duas variações viram uma por causa de um espaço.
-    expect(separarVariacoes('um\n   \ndois')).toEqual(['um', 'dois']);
-    expect(separarVariacoes('um\n\t\ndois')).toEqual(['um', 'dois']);
+  it('espaço das pontas sai; a quebra de dentro fica', () => {
+    expect(lerVariacoes(['  \n Oi!\n\nTchau. \n '])).toEqual(['Oi!\n\nTchau.']);
   });
 
-  it('normaliza a quebra do Windows', () => {
-    expect(separarVariacoes('um\r\n\r\ndois')).toEqual(['um', 'dois']);
-    expect(separarVariacoes('linha um\r\nlinha dois')).toEqual([
-      'linha um\nlinha dois',
-    ]);
+  it('a mesma mensagem fica igual no Windows e fora dele', () => {
+    expect(lerVariacoes(['Oi!\r\n\r\nTchau.'])).toEqual(['Oi!\n\nTchau.']);
   });
 
-  it('apara o espaço em volta, mas preserva a quebra de dentro', () => {
-    expect(separarVariacoes('  Oi!\nTudo bem?  ')).toEqual(['Oi!\nTudo bem?']);
-  });
-
-  it('devolve lista vazia para o que não é mensagem', () => {
-    for (const entrada of ['', '   ', '\n\n\n', null, undefined]) {
-      expect(separarVariacoes(entrada)).toEqual([]);
-    }
-  });
-});
-
-describe('juntarVariacoes', () => {
-  it('é o inverso exato de separar', () => {
-    // Se não fosse, reabrir o editor e salvar transformaria duas variações
-    // numa mensagem de duas linhas, em silêncio.
-    const casos = [
-      ['Oi!'],
-      ['Oi!\nTudo bem?', 'Olá!'],
-      ['linha um\nlinha dois\nlinha três'],
-      ['a', 'b', 'c'],
-    ];
-
-    for (const variacoes of casos) {
-      expect(separarVariacoes(juntarVariacoes(variacoes))).toEqual(variacoes);
-    }
-  });
-
-  it('vazio dos dois lados', () => {
-    expect(juntarVariacoes([])).toBe('');
-    expect(separarVariacoes('')).toEqual([]);
-  });
-});
-
-describe('contarVariacoes', () => {
-  it('conta o que a tela vai mostrar enquanto a pessoa digita', () => {
-    expect(contarVariacoes('')).toBe(0);
-    expect(contarVariacoes('Oiiiii!\nAqui é a Amanda.\nClique abaixo.')).toBe(1);
-    expect(contarVariacoes('Oi!\n\nOlá!\n\nE aí!')).toBe(3);
+  it('valor estranho não derruba o salvamento', () => {
+    expect(lerVariacoes([null, undefined, 42, 'Oi!'])).toEqual(['42', 'Oi!']);
   });
 });

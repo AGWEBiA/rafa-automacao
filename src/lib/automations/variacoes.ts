@@ -24,43 +24,37 @@
  * separador entre mensagens obriga a pessoa a lembrar de uma regra
  * justamente quando está fazendo a coisa mais óbvia possível.
  *
- * A regra agora é **linha em branco separa variações**. Uma mensagem de
+ * A regra passou a ser **linha em branco separa variações**. Uma mensagem de
  * três linhas continua sendo uma mensagem de três linhas — que é o que
  * qualquer pessoa espera ao apertar Enter.
- */
-
-/**
- * Quebra o texto do campo nas variações que ele contém.
  *
- * Linha em branco (ou várias) separa; quebra simples fica dentro da
- * mensagem. Espaço em volta de cada bloco sai; a quebra interna fica.
- */
-export function separarVariacoes(texto: unknown): string[] {
-  return String(texto ?? '')
-    // \r\n antes de dividir: caixa de texto no Windows manda \r\n, e sem
-    // normalizar o "\n\s*\n" não casaria do mesmo jeito nos dois sistemas.
-    .replace(/\r\n?/g, '\n')
-    .split(/\n[ \t]*\n+/)
-    .map((bloco) => bloco.trim())
-    .filter((bloco) => bloco.length > 0);
-}
-
-/**
- * O caminho de volta, para o editor mostrar o que está guardado.
+ * ─────────────────────────────────────────────────────────────────────────
  *
- * Precisa ser o inverso exato de `separarVariacoes`: se juntasse com uma
- * quebra só, reabrir e salvar transformaria duas variações numa mensagem de
- * duas linhas, em silêncio.
+ * A regra da linha em branco durou até outubro de 2026, e caiu pelo mesmo
+ * motivo da anterior: **ela roubava um caractere que a mensagem precisa.**
+ * Sem linha em branco não dá para separar parágrafos, e DM sem parágrafo é DM
+ * que ninguém lê até o fim.
+ *
+ * Agora cada variação tem a sua caixa no editor, e o formulário manda todas
+ * com o mesmo nome. Não existe mais separador escondido dentro do texto: a
+ * regra virou um botão, que é onde regra de interface deveria morar.
  */
-export function juntarVariacoes(variacoes: readonly string[]): string {
-  return variacoes.join('\n\n');
-}
 
 /**
- * Quantas variações o texto tem, para a tela poder dizer isso enquanto a
- * pessoa digita. É o que faltava: a regra existia e nada mostrava o efeito
- * dela até a mensagem já ter saído para alguém.
+ * As variações que vieram do formulário, uma por campo.
+ *
+ * Campo vazio é descartado — é o caso de quem acrescentou uma caixa e
+ * desistiu. O texto de dentro é preservado inteiro, com as quebras e as
+ * linhas em branco que a pessoa escreveu; só sobra espaço das pontas.
  */
-export function contarVariacoes(texto: unknown): number {
-  return separarVariacoes(texto).length;
+export function lerVariacoes(valores: readonly unknown[]): string[] {
+  return valores
+    .map((valor) =>
+      String(valor ?? '')
+        // \r\n das caixas de texto no Windows: normalizar aqui evita que a
+        // mesma mensagem fique diferente conforme o sistema de quem escreveu.
+        .replace(/\r\n?/g, '\n')
+        .trim(),
+    )
+    .filter((texto) => texto.length > 0);
 }

@@ -1,79 +1,92 @@
 'use client';
 
 import { useState } from 'react';
-import { separarVariacoes } from '@/lib/automations/variacoes';
 
 /**
- * O campo de mensagem, com o efeito da regra visível enquanto se digita.
+ * As variações da mensagem, uma por caixa.
  *
- * A regra — linha em branco separa variações — já existia escrita acima do
- * campo, e não bastou: alguém escreveu uma DM de três linhas, o sistema
- * guardou três mensagens e sorteou uma, e quem comentou recebeu só "Oiiiii!".
- * Ninguém viu nada errado até a mensagem já ter saído.
+ * Antes era uma caixa só, e **linha em branco separava variações**. A regra
+ * existia por um motivo bom — a regra anterior a ela, "uma variação por
+ * linha", fez alguém receber só "Oiiiii!" de uma DM de três linhas — mas
+ * cobrava um preço alto no uso diário: não dava para separar parágrafos dentro
+ * da mensagem, que é como se escreve uma DM que a pessoa lê até o fim.
  *
- * O contador conserta isso porque ele não pede que a pessoa lembre da regra:
- * ele mostra o resultado dela. "1 variação" ou "3 variações, sorteadas a cada
- * disparo" responde a pergunta antes que ela precise ser feita.
+ * Agora cada variação tem a sua caixa. A linha em branco volta a ser só uma
+ * linha em branco, o sorteio continua existindo para quem quiser, e a regra
+ * deixa de ser invisível: ela virou um botão.
+ *
+ * As caixas compartilham o mesmo `name`, então o formulário envia todas e o
+ * servidor lê com `getAll`. Caixa vazia é descartada lá, o que também resolve
+ * o caso de alguém acrescentar uma e desistir.
  */
-export function CampoDeVariacoes({
+export function CamposDeVariacoes({
   name,
-  defaultValue,
+  defaultValues,
   rows = 4,
   className,
+  rotuloDeAdicionar = 'Adicionar variação',
 }: {
   name: string;
-  defaultValue: string;
+  defaultValues: readonly string[];
   rows?: number;
   className: string;
+  rotuloDeAdicionar?: string;
 }) {
-  const [texto, setTexto] = useState(defaultValue);
-  const variacoes = separarVariacoes(texto);
+  const [variacoes, setVariacoes] = useState<string[]>(
+    defaultValues.length > 0 ? [...defaultValues] : [''],
+  );
+
+  const mudar = (indice: number, valor: string) => {
+    setVariacoes((atual) => atual.map((v, i) => (i === indice ? valor : v)));
+  };
+
+  const remover = (indice: number) => {
+    // Nunca ficar sem caixa nenhuma: sem campo na tela, não há onde escrever.
+    setVariacoes((atual) => (atual.length <= 1 ? [''] : atual.filter((_, i) => i !== indice)));
+  };
+
+  const escritas = variacoes.filter((v) => v.trim().length > 0).length;
 
   return (
     <div>
-      <textarea
-        name={name}
-        rows={rows}
-        value={texto}
-        onChange={(evento) => setTexto(evento.target.value)}
-        className={className}
-      />
+      <div className="grid gap-2">
+        {variacoes.map((valor, indice) => (
+          <div key={indice} className="flex items-start gap-2">
+            <textarea
+              name={name}
+              rows={rows}
+              value={valor}
+              onChange={(evento) => mudar(indice, evento.target.value)}
+              className={`${className} flex-1`}
+            />
+            {variacoes.length > 1 && (
+              <button
+                type="button"
+                onClick={() => remover(indice)}
+                aria-label={`Remover variação ${indice + 1}`}
+                className="mt-1 rounded-lg border border-linha-forte px-2 py-1 text-sm text-tinta-media hover:border-tinta"
+              >
+                remover
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
 
-      {variacoes.length > 0 && (
-        <div className="mt-2 text-xs text-tinta-fraca">
-          {variacoes.length === 1 ? (
-            <p>
-              <strong className="font-medium text-tinta-media">
-                1 mensagem.
-              </strong>{' '}
-              Para escrever outra versão dela, separe com uma linha em branco.
-            </p>
-          ) : (
-            <>
-              <p>
-                <strong className="font-medium text-tinta-media">
-                  {variacoes.length} variações
-                </strong>{' '}
-                — o sistema sorteia uma a cada disparo. Cada pessoa recebe uma
-                só.
-              </p>
-              <ol className="mt-1.5 space-y-1">
-                {variacoes.map((variacao, indice) => (
-                  <li key={indice} className="flex gap-2">
-                    <span className="numero shrink-0">{indice + 1}.</span>
-                    {/*
-                      A quebra de linha de dentro fica visível aqui: é assim
-                      que a pessoa confere que a mensagem dela não foi partida
-                      em pedaços sem ela perceber.
-                    */}
-                    <span className="whitespace-pre-wrap">{variacao}</span>
-                  </li>
-                ))}
-              </ol>
-            </>
-          )}
-        </div>
-      )}
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setVariacoes((atual) => [...atual, ''])}
+          className="rounded-lg border border-linha-forte px-3 py-1.5 text-sm font-medium hover:border-tinta"
+        >
+          + {rotuloDeAdicionar}
+        </button>
+        <span className="text-xs text-tinta-fraca">
+          {escritas <= 1
+            ? 'Uma mensagem. Acrescente outra versão para o sistema sortear a cada disparo.'
+            : `${escritas} versões — o sistema sorteia uma a cada disparo.`}
+        </span>
+      </div>
     </div>
   );
 }

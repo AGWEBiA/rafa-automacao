@@ -5,8 +5,7 @@ import { getFirstAccount } from '@/lib/repo/accounts';
 import { listMedia, type Media } from '@/lib/meta/media';
 import { salvarAutomacao, excluirAutomacao } from '../../actions';
 import { BotoesSalvar } from './botoes-salvar';
-import { juntarVariacoes } from '@/lib/automations/variacoes';
-import { CampoDeVariacoes } from './campo-variacoes';
+import { CamposDeVariacoes } from './campo-variacoes';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -167,32 +166,35 @@ export default async function EditorPage({
         <div className={CARD}>
           <h2 className="mb-1 font-medium">Resposta pública no comentário</h2>
           <p className="mb-3 text-sm text-tinta-fraca">
-            Escreva a resposta. Para ter mais de uma versão, e o sistema
-            sortear entre elas, separe cada uma com <strong>uma linha em
-            branco</strong>. Deixe vazio para não responder publicamente.
+            Escreva a resposta. Para ter mais de uma versão, e o sistema sortear
+            entre elas a cada disparo, use o botão de acrescentar. Deixe vazio
+            para não responder publicamente.
           </p>
-          <CampoDeVariacoes
+          <CamposDeVariacoes
             name="respostasPublicas"
             rows={4}
-            defaultValue={juntarVariacoes(publica?.variants ?? [])}
+            defaultValues={publica?.variants ?? []}
             className={CAMPO}
+            rotuloDeAdicionar="Acrescentar outra resposta"
           />
         </div>
 
         <div className={CARD}>
           <h2 className="mb-1 font-medium">DM privada</h2>
           <p className="mb-3 text-sm text-tinta-fraca">
-            Escreva a mensagem — as quebras de linha ficam nela. Para ter mais
-            de uma versão, e o sistema sortear entre elas, separe cada uma com{' '}
-            <strong>uma linha em branco</strong>. O pedido de follow e o link
-            vão nesta mesma mensagem, de propósito: uma segunda DM cairia fora
-            da janela de 24h do Meta e falharia com erro #10.
+            Escreva a mensagem — as quebras de linha e as linhas em branco ficam
+            nela, do jeito que você escrever. Para ter mais de uma versão, e o
+            sistema sortear entre elas a cada disparo, use o botão de
+            acrescentar. O pedido de follow e o link vão nesta mesma mensagem, de
+            propósito: uma segunda DM cairia fora da janela de 24h do Meta e
+            falharia com erro #10.
           </p>
-          <CampoDeVariacoes
+          <CamposDeVariacoes
             name="textosDm"
             rows={4}
-            defaultValue={juntarVariacoes(dm?.variants ?? [])}
+            defaultValues={dm?.variants ?? []}
             className={CAMPO}
+            rotuloDeAdicionar="Acrescentar outra versão da DM"
           />
 
           <div className="mt-3 flex gap-2">
@@ -227,20 +229,20 @@ export default async function EditorPage({
 
           <label className="block text-sm text-tinta-media">
             Mensagem 1
-            <CampoDeVariacoes
+            <CamposDeVariacoes
               name="followUp1"
               rows={3}
-              defaultValue={juntarVariacoes(followUps[0]?.variants ?? [])}
+              defaultValues={followUps[0]?.variants ?? []}
               className={CAMPO}
             />
           </label>
 
           <label className="mt-3 block text-sm text-tinta-media">
             Mensagem 2
-            <CampoDeVariacoes
+            <CamposDeVariacoes
               name="followUp2"
               rows={3}
-              defaultValue={juntarVariacoes(followUps[1]?.variants ?? [])}
+              defaultValues={followUps[1]?.variants ?? []}
               className={CAMPO}
             />
           </label>
