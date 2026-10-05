@@ -25,7 +25,10 @@ export async function markWebhookProcessed(
 
 export async function listRecentEvents(limit = 50): Promise<WebhookEventLog[]> {
   const rows = (await sql`
-    select id, received_at, signature_valid, processed_at, error
+    select id, received_at, signature_valid, processed_at, error,
+      -- Só o começo do payload: o suficiente para dizer o que foi a entrega,
+      -- sem trazer 50 payloads inteiros para montar uma tela de lista.
+      left(raw, 4000) as raw
     from webhook_events
     order by received_at desc
     limit ${limit}
@@ -35,6 +38,7 @@ export async function listRecentEvents(limit = 50): Promise<WebhookEventLog[]> {
     signature_valid: boolean;
     processed_at: Date | null;
     error: string | null;
+    raw: string | null;
   }[];
 
   return rows.map((r) => ({
@@ -43,5 +47,6 @@ export async function listRecentEvents(limit = 50): Promise<WebhookEventLog[]> {
     signatureValid: r.signature_valid,
     processedAt: r.processed_at,
     error: r.error,
+    raw: r.raw,
   }));
 }

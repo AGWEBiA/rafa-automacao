@@ -9,6 +9,7 @@ import { Botao, Cartao, Chip, ESTILO_CAMPO, Secao, TituloDaTela, Vazio } from '@
 import { diagnosticarPessoa } from '@/lib/repo/diagnostico';
 import { listDeliveries } from '@/lib/repo/deliveries';
 import { listRecentEvents } from '@/lib/repo/webhook-events';
+import { resumirEntrega } from '@/lib/painel/resumo-da-entrega';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -135,7 +136,19 @@ export default async function LogsPage({
 
       <Secao titulo="Eventos recebidos" descricao="Tudo que o Meta entregou. Se estiver vazio, confira o webhook no portal.">
         {webhooksRecentes.length === 0 ? <Vazio>Nenhum evento recebido ainda.</Vazio> : (
-          <div className="grid gap-3">{webhooksRecentes.map((evento) => <Cartao key={evento.id} className="flex flex-wrap items-center gap-2 p-3"><span className="text-sm">{dataPtBr(evento.receivedAt)}</span>{!evento.signatureValid && <Chip cor="bg-caindo-tenue text-caindo-forte">Assinatura inválida</Chip>}{evento.error && <span className="break-all font-mono text-xs">{evento.error}</span>}</Cartao>)}</div>
+          <div className="grid gap-3">{webhooksRecentes.map((evento) => (
+            <Cartao key={evento.id} className="flex flex-wrap items-center gap-2 p-3">
+              <span className="text-sm">{dataPtBr(evento.receivedAt)}</span>
+              {/*
+                O resumo é o que faltava: a lista dizia só o horário, e "chegou
+                alguma coisa" não ajuda ninguém a entender por que a automação
+                não disparou.
+              */}
+              <span className="text-sm text-tinta-media">{resumirEntrega(evento.raw)}</span>
+              {!evento.signatureValid && <Chip cor="bg-caindo-tenue text-caindo-forte">Assinatura inválida</Chip>}
+              {evento.error && <span className="break-all font-mono text-xs">{evento.error}</span>}
+            </Cartao>
+          ))}</div>
         )}
       </Secao>
     </div>

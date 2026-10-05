@@ -79,4 +79,6 @@ export type WebhookEventLog = {
   signatureValid: boolean;
   processedAt: Date | null;
   error: string | null;
+  /** O começo do payload, para a tela dizer o que foi a entrega. */
+  raw: string | null;
 };
