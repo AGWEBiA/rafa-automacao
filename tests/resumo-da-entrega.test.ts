@@ -161,3 +161,13 @@ describe('resumirEntrega diz o que o Meta mandou', () => {
     expect(resumirEntrega(JSON.stringify({ object: 'instagram', entry: [] }))).toBe('entrega sem comentário nem mensagem');
   });
 });
+
+describe('eco da DM', () => {
+  it('diz que é a própria DM voltando, em vez de "mensagem"', () => {
+    const raw = JSON.stringify({
+      object: 'instagram',
+      entry: [{ messaging: [{ sender: { id: '1' }, recipient: { id: '2' }, message: { mid: 'm', text: 'oi', is_echo: true } }] }],
+    });
+    expect(resumirEntrega(raw)).toContain('eco da DM que saiu daqui');
+  });
+});

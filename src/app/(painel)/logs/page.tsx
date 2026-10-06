@@ -10,6 +10,9 @@ import { diagnosticarPessoa } from '@/lib/repo/diagnostico';
 import { listDeliveries } from '@/lib/repo/deliveries';
 import { listRecentEvents } from '@/lib/repo/webhook-events';
 import { resumirEntrega } from '@/lib/painel/resumo-da-entrega';
+import { camposInscritos, camposQueFaltam } from '@/lib/meta/subscribe';
+import { getFirstAccount } from '@/lib/repo/accounts';
+import { NOME_DO_CAMPO } from '@/lib/painel/campos-do-webhook';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,6 +47,29 @@ export default async function LogsPage({
     listRecentEvents(30),
     busca ? diagnosticarPessoa(busca) : Promise.resolve(null),
   ]);
+
+  /*
+   * O que o Instagram aceitou mandar para cá.
+   *
+   * A conexao pede todos os campos, mas quem decide e a Meta: campo que o
+   * aplicativo não tem marcado no portal não entra, e ninguém avisa. Sem esta
+   * pergunta, a tela não distingue "ninguém comentou" de "comentário não chega
+   * aqui" — e as duas conclusões levam a dias de investigação em direções
+   * opostas.
+   *
+   * Falha de rede ou token vencido não derruba a tela de Logs: ela é
+   * justamente onde se vai quando algo já está errado.
+   */
+  const conta = await getFirstAccount();
+  const inscricao = await (async () => {
+    if (!conta?.accessToken) return { ok: false as const, motivo: 'conta-nao-conectada' as const };
+    try {
+      return { ok: true as const, campos: await camposInscritos(conta.igUserId, conta.accessToken) };
+    } catch {
+      return { ok: false as const, motivo: 'nao-respondeu' as const };
+    }
+  })();
+  const faltando = inscricao.ok ? camposQueFaltam(inscricao.campos) : [];
 
   const temInteracao = Boolean(
     diagnostico && (diagnostico.webhooks.total > 0 || diagnostico.eventos.total > 0),
@@ -132,6 +158,52 @@ export default async function LogsPage({
             </Cartao>;
           })}</div>
         )}
+      </Secao>
+
+      <Secao
+        titulo="O que o Instagram manda para cá"
+        descricao="Os avisos que a sua conta autorizou. Falta um deles? Esse tipo de evento nunca chega, por mais que aconteça no Instagram."
+      >
+        <Cartao className="p-4">
+          {!inscricao.ok ? (
+            <p className="text-sm">
+              {inscricao.motivo === 'conta-nao-conectada'
+                ? 'Conecte a conta do Instagram em Configuração para poder perguntar isto ao Instagram.'
+                : 'Não consegui perguntar ao Instagram agora. Tente recarregar esta tela em alguns instantes.'}
+            </p>
+          ) : (
+            <>
+              <ul className="flex flex-wrap gap-2">
+                {inscricao.campos.length === 0 ? (
+                  <li className="text-sm">Nenhum. Nenhum evento vai chegar aqui.</li>
+                ) : (
+                  inscricao.campos.map((campo) => (
+                    <li key={campo}>
+                      <Chip cor="bg-subindo-tenue text-subindo-forte">
+                        {NOME_DO_CAMPO[campo] ?? campo}
+                      </Chip>
+                    </li>
+                  ))
+                )}
+              </ul>
+              {faltando.length > 0 && (
+                <div className="mt-4 text-sm">
+                  <p className="font-medium">
+                    Falta: {faltando.map((c) => NOME_DO_CAMPO[c] ?? c).join(', ')}.
+                  </p>
+                  <p className="mt-1">
+                    {faltando.includes('comments')
+                      ? 'Sem o aviso de comentário, automação de comentário nunca dispara: o Instagram não conta para cá que alguém comentou. '
+                      : ''}
+                    Abra Configuração e conecte a conta de novo: a conexão pede todos os
+                    avisos. Se continuar faltando depois disso, o aplicativo no portal da
+                    Meta é que não tem esse campo marcado.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </Cartao>
       </Secao>
 
       <Secao titulo="Eventos recebidos" descricao="Tudo que o Meta entregou. Se estiver vazio, confira o webhook no portal.">

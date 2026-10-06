@@ -57,6 +57,7 @@ const NOMES_DOS_CAMPOS: Readonly<Record<string, string>> = {
   live_comments: 'aviso de comentário de live que este painel não soube ler',
   mentions: 'menção que este painel não soube ler',
   story_insights: 'números de Story',
+  message: 'mensagem que não virou evento',
 };
 
 function camposDaEntrega(payload: unknown): string[] {
@@ -83,6 +84,15 @@ function camposDaEntrega(payload: unknown): string[] {
       // aconteceu. É assim que o Meta desenha o `messaging`.
       for (const chave of Object.keys(m)) {
         if (chave === 'sender' || chave === 'recipient' || chave === 'timestamp') continue;
+        // `message` com `is_echo` é a DM que nós mesmos mandamos, voltando. Sem
+        // dizer isso, a linha vira "mensagem" e quem lê procura o remetente.
+        const mensagem = chave === 'message' && typeof m.message === 'object' && m.message !== null
+          ? (m.message as Record<string, unknown>)
+          : null;
+        if (mensagem?.is_echo === true) {
+          campos.add('eco da DM que saiu daqui');
+          continue;
+        }
         campos.add(NOMES_DOS_CAMPOS[chave] ?? chave);
       }
     }
