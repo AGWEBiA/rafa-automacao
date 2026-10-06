@@ -228,3 +228,24 @@ export async function resumirBanco(accountId: number): Promise<ResumoDoBanco> {
 }
 
 
+
+/**
+ * Quais destes ids são mesmo desta conta.
+ *
+ * Existe porque o agente do MCP manda ids que ele leu em algum lugar, e uma
+ * chave de uma instalação não pode alcançar contato de outra. Uma consulta
+ * para a lista inteira, e não uma por id: a conferência não pode custar caro o
+ * bastante para alguém ser tentado a pular.
+ */
+export async function idsDeContatosDaConta(
+  accountId: number,
+  ids: readonly number[],
+): Promise<Set<number>> {
+  const limpos = [...new Set(ids)].filter((id) => Number.isSafeInteger(id) && id > 0);
+  if (limpos.length === 0) return new Set();
+  const rows = (await sql`
+    select id from contacts
+    where account_id = ${accountId} and id = any(${limpos}::int[])
+  `) as { id: number }[];
+  return new Set(rows.map((r) => Number(r.id)));
+}
