@@ -75,7 +75,7 @@ describe('resumo de uma entrega', () => {
 
   it('entrega que não é comentário nem mensagem diz isso, em vez de ficar muda', () => {
     const leitura = JSON.stringify({ object: 'instagram', entry: [{ id: '1', messaging: [{ read: { mid: 'x' } }] }] });
-    expect(resumirEntrega(leitura)).toBe('entrega sem comentário nem mensagem');
+    expect(resumirEntrega(leitura)).toBe('entrega sem comentário nem mensagem · confirmação de leitura');
   });
 
   it('corpo recusado e payload ilegível têm cada um a sua frase', () => {
@@ -118,5 +118,46 @@ describe('resumo de uma entrega', () => {
       ],
     });
     expect(resumirEntrega(dois)).toMatch(/^2 eventos · /);
+  });
+});
+
+describe('resumirEntrega diz o que o Meta mandou', () => {
+  const entrega = (entry: unknown) => JSON.stringify({ object: 'instagram', entry });
+
+  it('nomeia a confirmação de leitura, que é normal e não dispara nada', () => {
+    const raw = entrega([{ messaging: [{ sender: { id: '1' }, recipient: { id: '2' }, timestamp: 1, read: { mid: 'm' } }] }]);
+    expect(resumirEntrega(raw)).toBe('entrega sem comentário nem mensagem · confirmação de leitura');
+  });
+
+  it('nomeia a reação', () => {
+    const raw = entrega([{ messaging: [{ sender: { id: '1' }, recipient: { id: '2' }, reaction: { emoji: '❤' } }] }]);
+    expect(resumirEntrega(raw)).toContain('reação a mensagem');
+  });
+
+  it('avisa quando era comentário e o painel não soube ler, que é outra conversa', () => {
+    const raw = entrega([{ changes: [{ field: 'comments', value: { verb: 'remove' } }] }]);
+    expect(resumirEntrega(raw)).toContain('comentário que este painel não soube ler');
+  });
+
+  it('mostra o nome cru do campo que ainda não tem tradução', () => {
+    const raw = entrega([{ changes: [{ field: 'campo_novo_do_meta', value: {} }] }]);
+    expect(resumirEntrega(raw)).toContain('campo_novo_do_meta');
+  });
+
+  it('diz quando a entrega nem é do Instagram', () => {
+    const raw = JSON.stringify({ object: 'page', entry: [{ changes: [{ field: 'feed' }] }] });
+    expect(resumirEntrega(raw)).toBe('entrega sem comentário nem mensagem · evento de page, não do Instagram');
+  });
+
+  it('não repete o mesmo campo duas vezes', () => {
+    const raw = entrega([
+      { messaging: [{ sender: { id: '1' }, read: { mid: 'a' } }] },
+      { messaging: [{ sender: { id: '2' }, read: { mid: 'b' } }] },
+    ]);
+    expect(resumirEntrega(raw)).toBe('entrega sem comentário nem mensagem · confirmação de leitura');
+  });
+
+  it('entrega vazia continua dizendo só o que dá para dizer', () => {
+    expect(resumirEntrega(JSON.stringify({ object: 'instagram', entry: [] }))).toBe('entrega sem comentário nem mensagem');
   });
 });

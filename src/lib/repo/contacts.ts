@@ -52,6 +52,10 @@ export async function contatosSemUsername(
   const rows = (await sql`
     select id, ig_user_id from contacts
     where account_id = ${accountId} and username is null
+      -- Contato nascido de formulário do site tem identificador com prefixo
+      -- site: e nunca terá perfil no Instagram. Pedir o perfil dele à Meta
+      -- gastaria chamada para receber erro, e a lista pararia no primeiro.
+      and ig_user_id ~ '^[0-9]+$'
     order by last_seen_at desc
     limit ${Math.max(1, Math.min(100, Math.trunc(limite)))}
   `) as { id: number; ig_user_id: string }[];
