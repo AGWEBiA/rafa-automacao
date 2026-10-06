@@ -1,6 +1,15 @@
 import { GRAPH_VERSION, metaGet, metaPost } from './client';
 
-export const WEBHOOK_FIELDS = 'messages,messaging_postbacks,comments,messaging_seen';
+/*
+ * `live_comments` entrou em 06/10/2026: comentário em transmissão ao vivo chega
+ * no mesmo formato do comentário em post, e a automação de comentário já sabe
+ * tratá-lo. Conferido contra a conta de produção — a Meta aceitou o campo e
+ * passou a listá-lo entre os inscritos.
+ *
+ * Quem conectou antes disso continua sem ele até reconectar: a inscrição é
+ * feita uma vez, na conexão. A tela de Logs diz quais avisos estão valendo.
+ */
+export const WEBHOOK_FIELDS = 'messages,messaging_postbacks,comments,messaging_seen,live_comments';
 
 export function subscribeApp(accountIgId: string, token: string): Promise<unknown> {
   return metaPost(`/${accountIgId}/subscribed_apps`, token, {}, {

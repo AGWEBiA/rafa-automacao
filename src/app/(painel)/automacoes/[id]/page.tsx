@@ -40,6 +40,10 @@ export default async function EditorPage({
 
   const publica = automacao.steps.find((s) => s.kind === 'public_reply');
   const dm = automacao.steps.find((s) => s.kind === 'dm');
+  const naoSegue = automacao.steps.find((s) => s.kind === 'dm_nao_segue');
+  // O Instagram só conta se a pessoa segue depois que ela escreve para a conta.
+  // Quem comentou ainda não escreveu, e a pergunta volta recusada.
+  const podeConferirSeSegue = automacao.triggerType !== 'comment';
   const botao = dm?.buttons[0];
   const followUps = automacao.steps
     .filter((s) => s.kind === 'follow_up')
@@ -211,6 +215,39 @@ export default async function EditorPage({
               className={CAMPO}
             />
           </div>
+        </div>
+
+        <div className={CARD}>
+          <h2 className="mb-1 font-medium">Quem ainda não segue</h2>
+          {podeConferirSeSegue ? (
+            <>
+              <p className="mb-3 text-sm text-tinta-fraca">
+                Mensagem que sai <strong>no lugar da DM acima</strong> quando a
+                pessoa ainda não segue a conta. Deixe em branco para mandar a
+                mesma DM para todo mundo. Escreva aqui o pedido para seguir, sem
+                o link — o botão com o link fica na DM normal.
+              </p>
+              <CamposDeVariacoes
+                name="textosNaoSegue"
+                rows={3}
+                defaultValues={naoSegue?.variants ?? []}
+                className={CAMPO}
+                rotuloDeAdicionar="Acrescentar outra versão"
+              />
+              <p className="mt-3 text-sm text-tinta-media">
+                Se o Instagram não responder se a pessoa segue, ela recebe a DM
+                normal. Na dúvida, quem pediu recebe o que pediu.
+              </p>
+            </>
+          ) : (
+            <p className="rounded-md bg-interessado-tenue p-3 text-sm text-interessado-forte">
+              Não dá para conferir isto em automação de comentário. O Instagram
+              só conta se a pessoa segue a conta depois que ela <strong>escreve</strong>{' '}
+              para você — quem comentou ainda não escreveu, e a pergunta volta
+              recusada. Em automação de DM ou de resposta de Story funciona.
+              Conferido na API em 06/10/2026.
+            </p>
+          )}
         </div>
 
         <div className={CARD}>

@@ -1,7 +1,7 @@
 import type { TipoDeGatilho } from '../repo/types';
 
 export type PassoParaValidar = {
-  kind: 'public_reply' | 'dm' | 'follow_up';
+  kind: 'public_reply' | 'dm' | 'dm_nao_segue' | 'follow_up';
   variants: string[];
 };
 

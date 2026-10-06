@@ -329,6 +329,92 @@ describe('processEvent com resposta de Story', () => {
     return vi.fn(async (_conta: number, gatilho: string) => mapa[gatilho] ?? []);
   }
 
+  describe('quem ainda não segue', () => {
+    const comPedido = (over: Partial<Automation> = {}) =>
+      automation({
+        triggerType: 'story_reply',
+        steps: [
+          ...automation().steps,
+          { id: 3, position: 2, kind: 'dm_nao_segue', variants: ['me segue primeiro :)'], buttons: [] },
+        ],
+        ...over,
+      });
+
+    it('manda o pedido de seguir, sem o botão do link', async () => {
+      const d = deps({
+        segueAConta: vi.fn().mockResolvedValue(false),
+        findPublishedAutomations: porGatilho({ story_reply: [comPedido()] }),
+      });
+      await processEvent(doStory(), d);
+      expect(d.sendDm).toHaveBeenCalledWith('conta', 'fulana', 'me segue primeiro :)', [], 'tok', 10);
+    });
+
+    it('quem já segue recebe a DM normal, com o botão', async () => {
+      const d = deps({
+        segueAConta: vi.fn().mockResolvedValue(true),
+        findPublishedAutomations: porGatilho({ story_reply: [comPedido()] }),
+      });
+      await processEvent(doStory(), d);
+      expect(d.sendDm).toHaveBeenCalledWith(
+        'conta', 'fulana', 'me segue e pega o link',
+        [{ title: 'Abrir', url: 'https://exemplo.com' }], 'tok', 10,
+      );
+    });
+
+    /*
+     * O Instagram recusa a pergunta para quem ainda não escreveu para a conta.
+     * Segurar o link por causa disso seria cobrar da pessoa um limite nosso.
+     */
+    it('sem resposta do Instagram, a pessoa recebe o que pediu', async () => {
+      const d = deps({
+        segueAConta: vi.fn().mockResolvedValue(null),
+        findPublishedAutomations: porGatilho({ story_reply: [comPedido()] }),
+      });
+      await processEvent(doStory(), d);
+      expect(d.sendDm).toHaveBeenCalledWith(
+        'conta', 'fulana', 'me segue e pega o link',
+        [{ title: 'Abrir', url: 'https://exemplo.com' }], 'tok', 10,
+      );
+    });
+
+    it('falha na consulta não derruba a entrega', async () => {
+      const d = deps({
+        segueAConta: vi.fn().mockRejectedValue(new Error('Meta fora do ar')),
+        findPublishedAutomations: porGatilho({ story_reply: [comPedido()] }),
+      });
+      expect(await processEvent(doStory(), d)).toEqual({ outcome: 'sent', automationId: 10 });
+      expect(d.sendDm).toHaveBeenCalledWith(
+        'conta', 'fulana', 'me segue e pega o link',
+        [{ title: 'Abrir', url: 'https://exemplo.com' }], 'tok', 10,
+      );
+    });
+
+    it('automação sem o texto não gasta chamada perguntando', async () => {
+      const d = deps({
+        segueAConta: vi.fn(),
+        findPublishedAutomations: porGatilho({ story_reply: [automation({ triggerType: 'story_reply' })] }),
+      });
+      await processEvent(doStory(), d);
+      expect(d.segueAConta).not.toHaveBeenCalled();
+    });
+
+    it('texto em branco também não gasta chamada', async () => {
+      const d = deps({
+        segueAConta: vi.fn(),
+        findPublishedAutomations: porGatilho({
+          story_reply: [comPedido({
+            steps: [
+              ...automation().steps,
+              { id: 3, position: 2, kind: 'dm_nao_segue', variants: [], buttons: [] },
+            ],
+          })],
+        }),
+      });
+      await processEvent(doStory(), d);
+      expect(d.segueAConta).not.toHaveBeenCalled();
+    });
+  });
+
   it('prefere a automação de Story quando existe', async () => {
     const daStory = automation({ id: 20, triggerType: 'story_reply' });
     const d = deps({

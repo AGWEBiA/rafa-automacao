@@ -52,3 +52,36 @@ export async function getProfile(
 
   return { igUserId: String(igUserId), username: data.username ?? null };
 }
+
+/**
+ * A pessoa já segue a conta?
+ *
+ * `true`, `false`, ou `null` quando não dá para saber — e o `null` é a parte
+ * importante. Conferido em 06/10/2026 contra 12 contatos reais, e o padrão não
+ * tem nada a ver com data: a Meta responde para quem **escreveu** para a conta
+ * (DM ou resposta de Story), e recusa com "User consent is required to access
+ * user profile" para quem apenas comentou, mesmo tendo recebido DM nossa.
+ *
+ * Ou seja: dá para checar antes de responder uma DM ou um Story. Não dá para
+ * checar na hora em que alguém comenta, porque nesse momento a pessoa ainda não
+ * falou com a conta. Fingir que dá, e segurar o link de quem comentou, seria
+ * punir a pessoa por um limite que é nosso.
+ *
+ * Por isso `null` nunca significa "não segue". Quem consome manda a mensagem
+ * normal — na dúvida, a pessoa recebe o que pediu.
+ */
+export async function segueAConta(
+  igUserId: string,
+  token: string,
+): Promise<boolean | null> {
+  try {
+    const raw = await metaGet(`/${GRAPH_VERSION}/${igUserId}`, {
+      fields: 'is_user_follow_business',
+      access_token: token,
+    });
+    const valor = (raw as { is_user_follow_business?: unknown }).is_user_follow_business;
+    return typeof valor === 'boolean' ? valor : null;
+  } catch {
+    return null;
+  }
+}

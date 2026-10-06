@@ -90,6 +90,13 @@ export type ProcessDeps = {
    * Opcional de propósito: quem não a implementa continua funcionando igual, e
    * quem implementa não pode deixar uma falha dela atrapalhar a entrega.
    */
+  /**
+   * A pessoa já segue a conta? `null` quando não dá para saber.
+   *
+   * Opcional: instalação que não implementa segue mandando a mensagem normal,
+   * que é também o que acontece quando a resposta é `null`.
+   */
+  segueAConta?(igUserId: string, token: string): Promise<boolean | null>;
   completarPerfil?(
     contactId: number,
     igUserId: string,
@@ -527,6 +534,20 @@ async function processarMensagem(
   const { automation, contactId, janela } = guards;
   const dmStep = automation.steps.find((s) => s.kind === 'dm');
 
+  /*
+   * A mensagem de quem ainda não segue.
+   *
+   * Só é consultada quando a automação tem esse texto escrito — ninguém paga
+   * uma chamada à Meta por um recurso que não configurou. E só `false` troca a
+   * mensagem: `null` é "não deu para saber", e nesse caso a pessoa recebe o que
+   * pediu. Segurar o link por uma dúvida nossa seria cobrar dela o nosso limite.
+   */
+  const passoNaoSegue = automation.steps.find((s) => s.kind === 'dm_nao_segue');
+  const segue = passoNaoSegue && passoNaoSegue.variants.length > 0 && deps.segueAConta
+    ? await deps.segueAConta(event.fromId, account.accessToken).catch(() => null)
+    : null;
+  const passoDaVez = segue === false && passoNaoSegue ? passoNaoSegue : dmStep;
+
   // Quem chega por mensagem chega sem `@`. Buscar agora, uma vez por contato.
   await semQuebrar(async () => {
     await deps.completarPerfil?.(contactId, event.fromId, account.accessToken);
@@ -548,12 +569,14 @@ async function processarMensagem(
     automation,
     event.fromId,
     async () => {
-      if (dmStep && dmStep.variants.length > 0) {
+      if (passoDaVez && passoDaVez.variants.length > 0) {
         await deps.sendDm(
           account.igUserId,
           event.fromId,
-          deps.pick(dmStep.variants),
-          dmStep.buttons,
+          deps.pick(passoDaVez.variants),
+          // O botão com o link mora no passo da DM normal. Quem ainda não segue
+          // recebe o pedido sem o link — é essa a diferença entre os dois.
+          passoDaVez.kind === 'dm' ? passoDaVez.buttons : [],
           account.accessToken,
           automation.id,
         );

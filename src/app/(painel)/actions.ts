@@ -108,13 +108,21 @@ export async function salvarAutomacao(formData: FormData) {
       buttons: botaoUrl.length > 0 ? [{ title: botaoTitulo || 'Abrir', url: botaoUrl }] : [],
     },
     {
+      // A mensagem de quem ainda não segue. Fica entre a DM e as continuações
+      // porque é alternativa à DM, não etapa depois dela.
       position: 2,
+      kind: 'dm_nao_segue' as const,
+      variants: linhas(formData.getAll('textosNaoSegue')),
+      buttons: [],
+    },
+    {
+      position: 3,
       kind: 'follow_up' as const,
       variants: linhas(formData.getAll('followUp1')),
       buttons: [],
     },
     {
-      position: 3,
+      position: 4,
       kind: 'follow_up' as const,
       variants: linhas(formData.getAll('followUp2')),
       buttons: [],

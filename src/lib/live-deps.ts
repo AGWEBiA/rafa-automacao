@@ -21,7 +21,7 @@ import {
   countRecentSent,
 } from './repo/deliveries';
 import { faltaUsername, gravarPerfilSeAusente, upsertContact } from './repo/contacts';
-import { getPerfilDaConversa } from './meta/profile';
+import { getPerfilDaConversa, segueAConta } from './meta/profile';
 import { claimMessage, releaseMessage } from './repo/processed-messages';
 import { publicReply, privateReply, sendDm } from './meta/messaging';
 import {
@@ -51,6 +51,7 @@ export const liveDeps: ProcessDeps = {
   upsertContact,
   // Uma consulta ao banco por mensagem, e uma à Meta só na primeira vez que
   // aquele contato aparece sem `@`.
+  segueAConta: (igUserId, token) => segueAConta(igUserId, token),
   async completarPerfil(contactId, igUserId, token) {
     if (!(await faltaUsername(contactId))) return;
     await gravarPerfilSeAusente(contactId, await getPerfilDaConversa(igUserId, token));
